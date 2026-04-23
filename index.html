@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ExpenseFlow">
+<meta name="theme-color" content="#0C1F3F">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<title>ExpenseFlow</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --navy:#0C1F3F;--navy2:#162d56;--blue:#185FA5;--blue-light:#E6F1FB;--blue-mid:#378ADD;
+  --green:#2D6A4F;--green-light:#D8F3DC;
+  --amber:#B45309;--amber-light:#FEF3C7;
+  --red:#991B1B;--red-light:#FEE2E2;
+  --gray:#6B7280;--gray-light:#F3F4F6;--gray2:#E5E7EB;
+  --card:#fff;--bg:#F0F2F5;--text:#111827;--text2:#6B7280;
+  --radius:14px;--radius-sm:10px;--safe-bottom:env(safe-area-inset-bottom,0px)
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'DM Sans',sans-serif;color:var(--text);font-size:15px}
+
+/* App shell */
+#app{display:flex;flex-direction:column;height:100%;height:100dvh}
+.status-bar-spacer{height:env(safe-area-inset-top,44px);background:var(--navy)}
+
+/* Header */
+.header{background:var(--navy);color:#fff;padding:12px 16px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.header-left{display:flex;align-items:center;gap:10px}
+.logo-mark{background:rgba(255,255,255,0.15);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;letter-spacing:-0.5px}
+.header-title{font-size:17px;font-weight:600}
+.header-sub{font-size:11px;opacity:0.6;margin-top:1px}
+.header-btn{background:rgba(255,255,255,0.12);border:none;color:#fff;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.header-btn:active{background:rgba(255,255,255,0.22)}
+
+/* Scrollable content */
+.scroll-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(72px + var(--safe-bottom))}
+
+/* Bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--gray2);display:flex;padding-bottom:var(--safe-bottom);z-index:50;box-shadow:0 -4px 20px rgba(0,0,0,0.06)}
+.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 8px;cursor:pointer;border:none;background:none;color:var(--gray);font-family:'DM Sans',sans-serif;font-size:10px;gap:4px;transition:color 0.15s}
+.nav-tab svg{width:22px;height:22px;transition:transform 0.15s}
+.nav-tab.active{color:var(--blue)}
+.nav-tab.active svg{transform:scale(1.05)}
+.nav-tab:active{opacity:0.7}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(72px + var(--safe-bottom) + 12px);right:16px;width:54px;height:54px;background:var(--blue);border-radius:16px;border:none;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(24,95,165,0.4);cursor:pointer;z-index:60;transition:transform 0.15s,box-shadow 0.15s}
+.fab:active{transform:scale(0.93);box-shadow:0 2px 8px rgba(24,95,165,0.3)}
+
+/* Pages */
+.page{display:none;padding:16px}
+.page.active{display:block}
+
+/* Summary strip */
+.summary-strip{background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);border-radius:var(--radius);padding:20px;color:#fff;margin-bottom:16px;position:relative;overflow:hidden}
+.summary-strip::after{content:'';position:absolute;right:-20px;top:-20px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.06)}
+.strip-label{font-size:11px;opacity:0.7;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px}
+.strip-amount{font-family:'DM Mono',monospace;font-size:32px;font-weight:500;letter-spacing:-1px}
+.strip-row{display:flex;justify-content:space-between;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.15)}
+.strip-stat{text-align:center}
+.strip-stat-val{font-size:18px;font-weight:600;font-family:'DM Mono',monospace}
+.strip-stat-lbl{font-size:10px;opacity:0.6;margin-top:2px}
+
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.card-header{padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray2)}
+.card-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em}
+
+/* Expense rows */
+.expense-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--gray2);transition:background 0.1s}
+.expense-item:last-child{border-bottom:none}
+.expense-item:active{background:var(--gray-light)}
+.exp-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.exp-body{flex:1;min-width:0}
+.exp-merchant{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exp-meta{font-size:12px;color:var(--gray);margin-top:2px;display:flex;align-items:center;gap:6px}
+.exp-right{text-align:right;flex-shrink:0}
+.exp-amount{font-family:'DM Mono',monospace;font-size:15px;font-weight:500}
+.exp-date{font-size:11px;color:var(--gray);margin-top:2px}
+.badge{display:inline-flex;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500}
+.badge-receipt{background:#E0F2FE;color:#0369A1;font-size:10px}
+
+/* Category colors */
+.cat-taxi{background:#FEF3C7}
+.cat-food{background:#D1FAE5}
+.cat-hotel{background:#DBEAFE}
+.cat-flight{background:#E0F2FE}
+.cat-client{background:#F3E8FF}
+.cat-transport{background:#FEE2E2}
+.cat-other{background:#F3F4F6}
+
+/* Trip cards */
+.trip-item{padding:14px 16px;border-bottom:1px solid var(--gray2);display:flex;align-items:center;gap:12px;cursor:pointer}
+.trip-item:last-child{border-bottom:none}
+.trip-item:active{background:var(--gray-light)}
+.trip-icon{width:40px;height:40px;border-radius:12px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.trip-body{flex:1;min-width:0}
+.trip-name{font-size:14px;font-weight:600}
+.trip-dates{font-size:12px;color:var(--gray);margin-top:2px}
+.trip-right{text-align:right}
+.trip-amount{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--blue)}
+.trip-count{font-size:11px;color:var(--gray)}
+.add-trip-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;border:none;background:none;color:var(--blue);font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif}
+.add-trip-btn:active{background:var(--gray-light)}
+
+/* Section headers on list */
+.list-section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray);padding:12px 0 6px}
+
+/* Chip filters */
+.chip-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px;scrollbar-width:none}
+.chip-scroll::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:7px 14px;border-radius:20px;font-size:13px;background:var(--card);border:1px solid var(--gray2);color:var(--gray);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s}
+.chip:active{transform:scale(0.96)}
+.chip.active{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* Bottom sheet modal */
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;opacity:0;pointer-events:none;transition:opacity 0.25s}
+.sheet-overlay.open{opacity:1;pointer-events:all}
+.sheet{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;z-index:201;transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);max-height:92dvh;display:flex;flex-direction:column;overflow:hidden}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--gray2);border-radius:2px;margin:10px auto 0}
+.sheet-header{padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray2);flex-shrink:0}
+.sheet-title{font-size:16px;font-weight:600}
+.sheet-close{background:var(--gray-light);border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--gray);font-size:18px;line-height:1}
+.sheet-body{padding:16px 20px;overflow-y:auto;flex:1;padding-bottom:calc(20px + var(--safe-bottom))}
+.sheet-footer{padding:12px 20px;border-top:1px solid var(--gray2);padding-bottom:calc(12px + var(--safe-bottom));flex-shrink:0}
+
+/* Form elements */
+.form-group{margin-bottom:16px}
+.form-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:7px}
+.form-input{width:100%;padding:13px 14px;border:1.5px solid var(--gray2);border-radius:var(--radius-sm);font-size:15px;font-family:'DM Sans',sans-serif;background:#fff;color:var(--text);outline:none;transition:border 0.15s;-webkit-appearance:none}
+.form-input:focus{border-color:var(--blue-mid)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-select{width:100%;padding:13px 14px;border:1.5px solid var(--gray2);border-radius:var(--radius-sm);font-size:15px;font-family:'DM Sans',sans-serif;background:#fff;color:var(--text);outline:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+
+/* Category picker grid */
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
+.cat-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:var(--radius-sm);border:1.5px solid var(--gray2);background:#fff;cursor:pointer;font-size:10px;color:var(--gray);font-family:'DM Sans',sans-serif;transition:all 0.15s}
+.cat-btn .cat-emoji{font-size:22px}
+.cat-btn.selected{border-color:var(--blue);background:var(--blue-light);color:var(--blue);font-weight:500}
+.cat-btn:active{transform:scale(0.94)}
+
+/* Receipt upload */
+.receipt-zone{border:2px dashed var(--gray2);border-radius:var(--radius-sm);padding:20px;text-align:center;cursor:pointer;transition:all 0.15s;position:relative;background:var(--gray-light)}
+.receipt-zone input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.receipt-zone:active{border-color:var(--blue-mid);background:var(--blue-light)}
+.receipt-thumb{width:100%;max-height:140px;object-fit:cover;border-radius:var(--radius-sm);margin-top:10px}
+
+/* Primary button */
+.btn-full{width:100%;padding:15px;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:active{background:#0C447C;transform:scale(0.98)}
+.btn-secondary-full{background:var(--gray-light);color:var(--text);margin-top:8px}
+.btn-danger-full{background:var(--red-light);color:var(--red)}
+
+/* Export page */
+.export-section{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.export-section-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px}
+.preview-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.preview-table th{background:var(--navy);color:#fff;padding:6px 8px;text-align:left;font-weight:500}
+.preview-table td{padding:6px 8px;border-bottom:1px solid var(--gray2)}
+.preview-table tr:last-child td{font-weight:600;background:var(--blue-light)}
+.preview-total{font-family:'DM Mono',monospace}
+
+/* Empty state */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;text-align:center;color:var(--gray)}
+.empty svg{opacity:0.25;margin-bottom:14px}
+.empty-title{font-size:16px;font-weight:500;margin-bottom:6px;color:var(--text)}
+.empty-sub{font-size:13px;line-height:1.5}
+
+/* Swipe to delete hint */
+.swipe-hint{font-size:11px;color:var(--gray);text-align:center;padding:8px;opacity:0.5}
+
+/* Toast */
+.toast{position:fixed;top:calc(env(safe-area-inset-top,44px) + 60px);left:50%;transform:translateX(-50%) translateY(-20px);background:#1a1a1a;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Trip detail sheet */
+.trip-detail-header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;margin:-16px -20px 16px;padding:20px;border-radius:0}
+.trip-detail-name{font-size:20px;font-weight:600;margin-bottom:4px}
+.trip-detail-meta{font-size:13px;opacity:0.7}
+.trip-detail-total{font-family:'DM Mono',monospace;font-size:28px;font-weight:500;margin-top:12px}
+
+/* Install banner */
+.install-banner{background:var(--amber-light);border:1px solid #FCD34D;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--amber)}
+.install-banner svg{flex-shrink:0;margin-top:1px}
+.install-close{background:none;border:none;color:var(--amber);cursor:pointer;padding:0;font-size:16px;line-height:1;margin-left:auto}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="status-bar-spacer"></div>
+
+  <!-- Header -->
+  <div class="header" id="main-header">
+    <div class="header-left">
+      <div class="logo-mark">b2</div>
+      <div>
+        <div class="header-title">ExpenseFlow</div>
+        <div class="header-sub" id="header-sub">Loading...</div>
+      </div>
+    </div>
+    <button class="header-btn" onclick="navigate('export')" title="Export">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v12M8 10l4 4 4-4M2 18v2a2 2 0 002 2h16a2 2 0 002-2v-2"/></svg>
+    </button>
+  </div>
+
+  <!-- Scrollable content area -->
+  <div class="scroll-content">
+
+    <!-- HOME PAGE -->
+    <div class="page active" id="page-home">
+      <div id="install-banner" class="install-banner" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <span><strong>Install app:</strong> tap <strong>Share → Add to Home Screen</strong> for offline access</span>
+        <button class="install-close" onclick="this.parentElement.style.display='none'">×</button>
+      </div>
+
+      <!-- Summary strip -->
+      <div class="summary-strip">
+        <div class="strip-label">Total Pending Reembolso</div>
+        <div class="strip-amount" id="home-total">€0.00</div>
+        <div class="strip-row">
+          <div class="strip-stat">
+            <div class="strip-stat-val" id="home-count">0</div>
+            <div class="strip-stat-lbl">Expenses</div>
+          </div>
+          <div class="strip-stat">
+            <div class="strip-stat-val" id="home-trips">0</div>
+            <div class="strip-stat-lbl">Trips</div>
+          </div>
+          <div class="strip-stat">
+            <div class="strip-stat-val" id="home-month">€0</div>
+            <div class="strip-stat-lbl">This month</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent expenses -->
+      <div class="list-section-label">Recent Expenses</div>
+      <div class="card">
+        <div id="home-recent-list">
+          <div class="empty" style="padding:28px 20px">
+            <div style="font-size:32px;margin-bottom:8px">🧾</div>
+            <div class="empty-title">No expenses yet</div>
+            <div class="empty-sub">Tap + to add your first expense</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick add buttons -->
+      <div class="list-section-label">Quick Add</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
+        <button onclick="quickAdd('taxi')" style="background:#FEF3C7;border:none;border-radius:12px;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#92400E;cursor:pointer;font-family:'DM Sans',sans-serif"><span style="font-size:24px">🚕</span>Taxi</button>
+        <button onclick="quickAdd('food')" style="background:#D1FAE5;border:none;border-radius:12px;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#065F46;cursor:pointer;font-family:'DM Sans',sans-serif"><span style="font-size:24px">🍽️</span>Food</button>
+        <button onclick="quickAdd('hotel')" style="background:#DBEAFE;border:none;border-radius:12px;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#1E40AF;cursor:pointer;font-family:'DM Sans',sans-serif"><span style="font-size:24px">🏨</span>Hotel</button>
+        <button onclick="quickAdd('flight')" style="background:#E0F2FE;border:none;border-radius:12px;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#075985;cursor:pointer;font-family:'DM Sans',sans-serif"><span style="font-size:24px">✈️</span>Flight</button>
+      </div>
+    </div>
+
+    <!-- EXPENSES PAGE -->
+    <div class="page" id="page-expenses">
+      <div class="chip-scroll" id="cat-filters">
+        <button class="chip active" onclick="filterCat('all',this)">All</button>
+        <button class="chip" onclick="filterCat('taxi',this)">🚕 Taxi</button>
+        <button class="chip" onclick="filterCat('food',this)">🍽️ Food</button>
+        <button class="chip" onclick="filterCat('hotel',this)">🏨 Hotel</button>
+        <button class="chip" onclick="filterCat('flight',this)">✈️ Flight</button>
+        <button class="chip" onclick="filterCat('client',this)">🤝 Client</button>
+        <button class="chip" onclick="filterCat('transport',this)">🚌 Transport</button>
+        <button class="chip" onclick="filterCat('other',this)">📦 Other</button>
+      </div>
+      <div class="card" id="expenses-list-card">
+        <div id="expenses-list"></div>
+      </div>
+    </div>
+
+    <!-- TRIPS PAGE -->
+    <div class="page" id="page-trips">
+      <div class="card">
+        <div id="trips-list"></div>
+        <button class="add-trip-btn" onclick="openNewTripSheet()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+          New Business Trip
+        </button>
+      </div>
+    </div>
+
+    <!-- EXPORT PAGE -->
+    <div class="page" id="page-export">
+      <div class="export-section">
+        <div class="export-section-title">Your Details</div>
+        <div class="form-group">
+          <label class="form-label">Your Name (Solicitante)</label>
+          <input class="form-input" id="ex-name" placeholder="Full name" oninput="updatePreview()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">BU Asociada</label>
+          <input class="form-input" id="ex-bu" placeholder="Business unit" oninput="updatePreview()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Responsable Directo</label>
+          <input class="form-input" id="ex-manager" placeholder="Manager name" oninput="updatePreview()">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Motivo de la Solicitud</label>
+          <input class="form-input" id="ex-reason" placeholder="e.g. Business trip Madrid" oninput="updatePreview()">
+        </div>
+      </div>
+
+      <div class="export-section">
+        <div class="export-section-title">Select Expenses</div>
+        <div class="chip-scroll" id="export-chips">
+          <button class="chip active" onclick="selectExport('all',this)">All</button>
+          <button class="chip" onclick="selectExport('general',this)">General</button>
+        </div>
+        <div id="export-preview-wrap">
+          <table class="preview-table">
+            <thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th>€</th></tr></thead>
+            <tbody id="preview-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <button class="btn-full btn-primary" onclick="generatePDF()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:-3px;margin-right:6px"><path d="M12 2v12M8 10l4 4 4-4M2 18v2a2 2 0 002 2h16a2 2 0 002-2v-2"/></svg>
+        Open Reembolso Sheet
+      </button>
+      <button class="btn-full btn-secondary-full" onclick="generateEmail()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-3px;margin-right:6px"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8l10 6 10-6"/></svg>
+        Copy Email Draft
+      </button>
+    </div>
+
+  </div><!-- end scroll-content -->
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <button class="nav-tab active" id="tab-home" onclick="navigate('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/></svg>
+      Home
+    </button>
+    <button class="nav-tab" id="tab-expenses" onclick="navigate('expenses')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 10h8M8 14h5"/></svg>
+      Expenses
+    </button>
+    <div style="width:54px;flex-shrink:0"></div><!-- FAB placeholder -->
+    <button class="nav-tab" id="tab-trips" onclick="navigate('trips')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-12 4 8 3-5 5 9"/><circle cx="19" cy="5" r="2"/></svg>
+      Trips
+    </button>
+    <button class="nav-tab" id="tab-export" onclick="navigate('export')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v12M8 10l4 4 4-4M2 18v2a2 2 0 002 2h16a2 2 0 002-2v-2"/></svg>
+      Export
+    </button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openAddSheet()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+</div>
+
+<!-- ===== ADD EXPENSE SHEET ===== -->
+<div class="sheet-overlay" id="add-overlay" onclick="closeSheet('add')"></div>
+<div class="sheet" id="add-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title" id="add-sheet-title">Add Expense</span>
+    <button class="sheet-close" onclick="closeSheet('add')">×</button>
+  </div>
+  <div class="sheet-body">
+    <!-- Receipt upload -->
+    <div class="form-group">
+      <label class="form-label">Receipt Photo</label>
+      <div class="receipt-zone" id="receipt-zone" onclick="document.getElementById('receipt-file').click()">
+        <input type="file" id="receipt-file" accept="image/*" capture="environment" onchange="handleReceipt(this)" style="display:none">
+        <div id="receipt-placeholder">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 8px;display:block;opacity:0.4"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <div style="font-size:14px;color:var(--gray)">Tap to photograph receipt</div>
+          <div style="font-size:12px;color:var(--gray);margin-top:4px;opacity:0.6">Opens camera on your phone</div>
+        </div>
+        <img id="receipt-thumb" class="receipt-thumb" style="display:none">
+      </div>
+    </div>
+
+    <!-- Category picker -->
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <div class="cat-grid">
+        <button class="cat-btn selected" onclick="selectCat('taxi',this)"><span class="cat-emoji">🚕</span>Taxi</button>
+        <button class="cat-btn" onclick="selectCat('food',this)"><span class="cat-emoji">🍽️</span>Food</button>
+        <button class="cat-btn" onclick="selectCat('hotel',this)"><span class="cat-emoji">🏨</span>Hotel</button>
+        <button class="cat-btn" onclick="selectCat('flight',this)"><span class="cat-emoji">✈️</span>Flight</button>
+        <button class="cat-btn" onclick="selectCat('client',this)"><span class="cat-emoji">🤝</span>Client</button>
+        <button class="cat-btn" onclick="selectCat('transport',this)"><span class="cat-emoji">🚌</span>Bus/Train</button>
+        <button class="cat-btn" onclick="selectCat('other',this)"><span class="cat-emoji">📦</span>Other</button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Amount (€)</label>
+        <input class="form-input" type="number" step="0.01" inputmode="decimal" id="a-amount" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="a-date">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Merchant / Business Name</label>
+      <input class="form-input" id="a-merchant" placeholder="Restaurant, hotel, airline...">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Assign to Trip</label>
+      <select class="form-select" id="a-trip">
+        <option value="">General Expenses</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Notes (optional)</label>
+      <input class="form-input" id="a-notes" placeholder="With client, conference dinner...">
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn-full btn-primary" onclick="saveExpense()">Save Expense</button>
+  </div>
+</div>
+
+<!-- ===== NEW TRIP SHEET ===== -->
+<div class="sheet-overlay" id="trip-overlay" onclick="closeSheet('trip')"></div>
+<div class="sheet" id="trip-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">New Business Trip</span>
+    <button class="sheet-close" onclick="closeSheet('trip')">×</button>
+  </div>
+  <div class="sheet-body">
+    <div class="form-group">
+      <label class="form-label">Trip Name</label>
+      <input class="form-input" id="t-name" placeholder="e.g. Madrid Sales Conference">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Destination</label>
+      <input class="form-input" id="t-dest" placeholder="e.g. Madrid, Spain">
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Start Date</label>
+        <input class="form-input" type="date" id="t-start">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">End Date</label>
+        <input class="form-input" type="date" id="t-end">
+      </div>
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn-full btn-primary" onclick="saveTrip()">Create Trip</button>
+  </div>
+</div>
+
+<!-- ===== TRIP DETAIL SHEET ===== -->
+<div class="sheet-overlay" id="tripdetail-overlay" onclick="closeSheet('tripdetail')"></div>
+<div class="sheet" id="tripdetail-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-body" id="tripdetail-body"></div>
+</div>
+
+<!-- ===== EMAIL SHEET ===== -->
+<div class="sheet-overlay" id="email-overlay" onclick="closeSheet('email')"></div>
+<div class="sheet" id="email-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Email Draft</span>
+    <button class="sheet-close" onclick="closeSheet('email')">×</button>
+  </div>
+  <div class="sheet-body">
+    <div class="form-group">
+      <label class="form-label">Subject</label>
+      <input class="form-input" id="email-subject" readonly>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Body</label>
+      <textarea class="form-input" id="email-body" rows="14" style="resize:none;line-height:1.6;font-size:13px"></textarea>
+    </div>
+    <div style="background:var(--amber-light);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--amber);margin-top:-4px">
+      📎 Remember to attach the PDF and receipt photos when you send
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn-full btn-primary" onclick="copyEmail()">Copy to Clipboard</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- State ----
+let state = {expenses:[], trips:[], nextId:1, exportGroup:'all', exportDetails:{name:'',bu:'',manager:'',reason:''}};
+try { const s = localStorage.getItem('ef2'); if(s) state = {...state, ...JSON.parse(s)}; } catch(e){}
+
+const CATS = {
+  taxi:{label:'Taxi / Uber',emoji:'🚕',bg:'#FEF3C7'},
+  food:{label:'Food & Drinks',emoji:'🍽️',bg:'#D1FAE5'},
+  hotel:{label:'Hotel',emoji:'🏨',bg:'#DBEAFE'},
+  flight:{label:'Flight',emoji:'✈️',bg:'#E0F2FE'},
+  client:{label:'Client Entertainment',emoji:'🤝',bg:'#F3E8FF'},
+  transport:{label:'Bus / Train',emoji:'🚌',bg:'#FEE2E2'},
+  other:{label:'Other',emoji:'📦',bg:'#F3F4F6'}
+};
+
+function save() {
+  try { localStorage.setItem('ef2', JSON.stringify(state)); } catch(e){}
+  refreshAll();
+}
+
+const fmt = n => '€' + parseFloat(n||0).toFixed(2);
+const today = () => new Date().toISOString().split('T')[0];
+
+// ---- Navigation ----
+let currentPage = 'home';
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const tab = document.getElementById('tab-'+page);
+  if(tab) tab.classList.add('active');
+  currentPage = page;
+  const subs = {home:'Expense Tracker',expenses:'All Expenses',trips:'Business Trips',export:'Export Reembolso'};
+  document.getElementById('header-sub').textContent = subs[page]||'';
+  refreshAll();
+}
+
+// ---- Refresh ----
+function refreshAll() {
+  refreshHome();
+  refreshExpenses();
+  refreshTrips();
+  refreshExport();
+  updateExportChips();
+}
+
+function refreshHome() {
+  const all = state.expenses;
+  const total = all.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const now = new Date(), mo = now.getMonth(), yr = now.getFullYear();
+  const monthExp = all.filter(e=>{const d=new Date(e.date);return d.getMonth()===mo&&d.getFullYear()===yr;});
+  const mTotal = monthExp.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  document.getElementById('home-total').textContent = fmt(total);
+  document.getElementById('home-count').textContent = all.length;
+  document.getElementById('home-trips').textContent = state.trips.length;
+  document.getElementById('home-month').textContent = '€'+Math.round(mTotal);
+
+  const recent = [...all].sort((a,b)=>b.id-a.id).slice(0,5);
+  const el = document.getElementById('home-recent-list');
+  if(!recent.length){
+    el.innerHTML='<div class="empty" style="padding:28px 20px"><div style="font-size:32px;margin-bottom:8px">🧾</div><div class="empty-title">No expenses yet</div><div class="empty-sub">Tap + to add your first expense</div></div>';
+    return;
+  }
+  el.innerHTML = recent.map(expRow).join('');
+}
+
+let currentFilter = 'all';
+function refreshExpenses() {
+  let exps = [...state.expenses].sort((a,b)=>b.id-a.id);
+  if(currentFilter!=='all') exps = exps.filter(e=>e.category===currentFilter);
+  const el = document.getElementById('expenses-list');
+  if(!exps.length){el.innerHTML='<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 10h8M8 14h5"/></svg><div class="empty-title">No expenses</div><div class="empty-sub">'+( currentFilter!=='all'?'No '+currentFilter+' expenses found':'Add your first expense')+' </div></div>';return;}
+  el.innerHTML = exps.map(expRow).join('');
+}
+
+function expRow(e) {
+  const cat = CATS[e.category]||CATS.other;
+  const trip = e.tripId ? state.trips.find(t=>t.id===e.tripId) : null;
+  return `<div class="expense-item" onclick="openExpenseDetail(${e.id})">
+    <div class="exp-icon" style="background:${cat.bg}">${cat.emoji}</div>
+    <div class="exp-body">
+      <div class="exp-merchant">${e.merchant||'Unknown merchant'}</div>
+      <div class="exp-meta">
+        <span>${cat.label}</span>
+        ${trip?`<span>·</span><span>${trip.name}</span>`:''}
+        ${e.hasReceipt?'<span class="badge badge-receipt">📎 receipt</span>':''}
+      </div>
+    </div>
+    <div class="exp-right">
+      <div class="exp-amount">${fmt(e.amount)}</div>
+      <div class="exp-date">${e.date}</div>
+    </div>
+  </div>`;
+}
+
+function filterCat(cat, btn) {
+  currentFilter = cat;
+  document.querySelectorAll('#cat-filters .chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  refreshExpenses();
+}
+
+function refreshTrips() {
+  const el = document.getElementById('trips-list');
+  if(!state.trips.length){el.innerHTML='<div class="empty" style="padding-top:24px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 17l6-12 4 8 3-5 5 9"/></svg><div class="empty-title">No trips yet</div><div class="empty-sub">Create a trip to group related expenses</div></div>';return;}
+  el.innerHTML = state.trips.map(t=>{
+    const exps = state.expenses.filter(e=>e.tripId===t.id);
+    const total = exps.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+    return `<div class="trip-item" onclick="openTripDetail(${t.id})">
+      <div class="trip-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2"><path d="M3 17l6-12 4 8 3-5 5 9"/></svg></div>
+      <div class="trip-body">
+        <div class="trip-name">${t.name}</div>
+        <div class="trip-dates">${t.destination?t.destination+' · ':''}${t.start||''}${t.end?' – '+t.end:''}</div>
+      </div>
+      <div class="trip-right">
+        <div class="trip-amount">${fmt(total)}</div>
+        <div class="trip-count">${exps.length} item${exps.length!==1?'s':''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function refreshExport() {
+  updatePreview();
+  // restore saved details
+  ['name','bu','manager','reason'].forEach(k=>{
+    const el = document.getElementById('ex-'+k);
+    if(el && state.exportDetails[k]) el.value = state.exportDetails[k];
+  });
+}
+
+function updateExportChips() {
+  const chips = document.getElementById('export-chips');
+  const existing = chips.querySelectorAll('.chip');
+  const base = Array.from(existing).slice(0,2);
+  const tripChips = state.trips.map(t=>{
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (state.exportGroup==='trip-'+t.id?' active':'');
+    btn.textContent = t.name;
+    btn.onclick = ()=>selectExport('trip-'+t.id, btn);
+    return btn;
+  });
+  chips.innerHTML = '';
+  base.forEach((b,i)=>{
+    b.className = 'chip'+(state.exportGroup===['all','general'][i]?' active':'');
+    b.onclick = [()=>selectExport('all',b), ()=>selectExport('general',b)][i];
+    chips.appendChild(b);
+  });
+  tripChips.forEach(b=>chips.appendChild(b));
+}
+
+function getExportExpenses() {
+  const g = state.exportGroup;
+  if(g==='all') return state.expenses;
+  if(g==='general') return state.expenses.filter(e=>!e.tripId);
+  if(g.startsWith('trip-')) { const id=parseInt(g.split('-')[1]); return state.expenses.filter(e=>e.tripId===id); }
+  return state.expenses;
+}
+
+function selectExport(group, btn) {
+  state.exportGroup = group;
+  save();
+  document.querySelectorAll('#export-chips .chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  updatePreview();
+}
+
+function updatePreview() {
+  const exps = getExportExpenses();
+  const tbody = document.getElementById('preview-tbody');
+  if(!tbody) return;
+  if(!exps.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--gray);padding:12px">No expenses selected</td></tr>';return;}
+  const total = exps.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  tbody.innerHTML = exps.map(e=>`<tr><td>${e.date}</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.merchant||'—'}</td><td>${CATS[e.category]?.label||e.category}</td><td class="preview-total">${fmt(e.amount)}</td></tr>`).join('')
+    + `<tr><td colspan="3" style="text-align:right;font-weight:600">Total</td><td class="preview-total" style="font-weight:600">${fmt(total)}</td></tr>`;
+
+  // Save details from fields
+  ['name','bu','manager','reason'].forEach(k=>{
+    const el = document.getElementById('ex-'+k);
+    if(el) state.exportDetails[k] = el.value;
+  });
+}
+
+// ---- Add Expense Sheet ----
+let selectedCategory = 'taxi';
+let currentReceiptB64 = null;
+
+function openAddSheet(presetCat) {
+  selectedCategory = presetCat || 'taxi';
+  currentReceiptB64 = null;
+  document.getElementById('a-amount').value = '';
+  document.getElementById('a-date').value = today();
+  document.getElementById('a-merchant').value = '';
+  document.getElementById('a-notes').value = '';
+  document.getElementById('receipt-thumb').style.display = 'none';
+  document.getElementById('receipt-placeholder').style.display = 'block';
+  document.getElementById('receipt-file').value = '';
+
+  // Populate trip select
+  const sel = document.getElementById('a-trip');
+  sel.innerHTML = '<option value="">General Expenses</option>' +
+    state.trips.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+
+  // Set category
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('selected'));
+  const catBtns = document.querySelectorAll('.cat-btn');
+  catBtns.forEach(b=>{ if(b.getAttribute('onclick').includes("'"+selectedCategory+"'")) b.classList.add('selected'); });
+
+  document.getElementById('add-sheet-title').textContent = 'Add Expense';
+  openSheet('add');
+}
+
+function quickAdd(cat) { openAddSheet(cat); }
+
+function selectCat(cat, btn) {
+  selectedCategory = cat;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function handleReceipt(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    currentReceiptB64 = ev.target.result;
+    document.getElementById('receipt-thumb').src = currentReceiptB64;
+    document.getElementById('receipt-thumb').style.display = 'block';
+    document.getElementById('receipt-placeholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveExpense() {
+  const amount = parseFloat(document.getElementById('a-amount').value);
+  if(!amount || amount <= 0) { showToast('Enter a valid amount'); return; }
+  const tripVal = document.getElementById('a-trip').value;
+  state.expenses.push({
+    id: state.nextId++,
+    date: document.getElementById('a-date').value || today(),
+    amount: amount.toFixed(2),
+    merchant: document.getElementById('a-merchant').value,
+    category: selectedCategory,
+    tripId: tripVal ? parseInt(tripVal) : null,
+    notes: document.getElementById('a-notes').value,
+    hasReceipt: !!currentReceiptB64,
+    receiptData: currentReceiptB64
+  });
+  save();
+  closeSheet('add');
+  showToast('✓ Expense saved');
+}
+
+// ---- Expense Detail ----
+function openExpenseDetail(id) {
+  const e = state.expenses.find(x=>x.id===id);
+  if(!e) return;
+  const cat = CATS[e.category]||CATS.other;
+  const trip = e.tripId ? state.trips.find(t=>t.id===e.tripId) : null;
+  // Simple confirm delete for now — could extend with edit sheet
+  if(confirm(`Delete this expense?\n${cat.emoji} ${e.merchant||'Expense'} — ${fmt(e.amount)}`)) {
+    state.expenses = state.expenses.filter(x=>x.id!==id);
+    save();
+    showToast('Expense deleted');
+  }
+}
+
+// ---- Trip Sheet ----
+function openNewTripSheet() {
+  document.getElementById('t-name').value = '';
+  document.getElementById('t-dest').value = '';
+  document.getElementById('t-start').value = today();
+  document.getElementById('t-end').value = '';
+  openSheet('trip');
+}
+
+function saveTrip() {
+  const name = document.getElementById('t-name').value.trim();
+  if(!name) { showToast('Enter a trip name'); return; }
+  state.trips.push({
+    id: state.nextId++,
+    name,
+    destination: document.getElementById('t-dest').value,
+    start: document.getElementById('t-start').value,
+    end: document.getElementById('t-end').value
+  });
+  save();
+  closeSheet('trip');
+  showToast('✓ Trip created');
+}
+
+// ---- Trip Detail ----
+function openTripDetail(id) {
+  const trip = state.trips.find(t=>t.id===id);
+  if(!trip) return;
+  const exps = state.expenses.filter(e=>e.tripId===id);
+  const total = exps.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const body = document.getElementById('tripdetail-body');
+  body.innerHTML = `
+    <div class="trip-detail-header">
+      <div class="trip-detail-name">${trip.name}</div>
+      <div class="trip-detail-meta">${trip.destination||''}${trip.start?' · '+trip.start:''} ${trip.end?'→ '+trip.end:''}</div>
+      <div class="trip-detail-total">${fmt(total)}</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button class="btn-full btn-primary" style="flex:1" onclick="closeSheet('tripdetail');openAddSheet();document.getElementById('a-trip').value='${id}'">
+        Add Expense
+      </button>
+      <button class="btn-full btn-danger-full" style="flex:1" onclick="deleteTrip(${id})">Delete Trip</button>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">${exps.length} Expense${exps.length!==1?'s':''}</div>
+    <div class="card">
+      ${exps.length ? exps.map(e=>expRow(e)).join('') : '<div class="empty" style="padding:20px"><div>No expenses for this trip yet</div></div>'}
+    </div>
+  `;
+  openSheet('tripdetail');
+}
+
+function deleteTrip(id) {
+  if(!confirm('Delete this trip? Expenses will move to General.')) return;
+  state.trips = state.trips.filter(t=>t.id!==id);
+  state.expenses.forEach(e=>{ if(e.tripId===id) e.tripId=null; });
+  save();
+  closeSheet('tripdetail');
+  showToast('Trip deleted');
+}
+
+// ---- Sheet helpers ----
+function openSheet(name) {
+  document.getElementById(name+'-overlay').classList.add('open');
+  document.getElementById(name+'-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet(name) {
+  document.getElementById(name+'-overlay').classList.remove('open');
+  document.getElementById(name+'-sheet').classList.remove('open');
+  if(!document.querySelector('.sheet-overlay.open')) document.body.style.overflow = '';
+}
+
+// ---- Export / PDF ----
+function generatePDF() {
+  const exps = getExportExpenses();
+  if(!exps.length) { showToast('No expenses to export'); return; }
+  const d = state.exportDetails;
+  const name = d.name || '_______________';
+  const bu = d.bu || '_______________';
+  const manager = d.manager || '_______________';
+  const reason = d.reason || '_______________';
+  const total = exps.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const rows = exps.map(e=>`<tr><td>${e.date}</td><td>${e.merchant||''}</td><td>${CATS[e.category]?.label||e.category}</td><td style="text-align:right">${fmt(e.amount)}</td></tr>`).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Solicitud de Reembolso</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:11px;margin:30px;color:#000}
+    h2{text-align:center;background:#185FA5;color:#fff;padding:7px;font-size:13px;margin:0 0 0}
+    .logo{font-weight:700;font-size:18px;margin-bottom:16px;color:#0C1F3F}
+    .logo span{background:#0C1F3F;color:#fff;padding:2px 6px;border-radius:3px}
+    table{width:100%;border-collapse:collapse;margin:12px 0}
+    td,th{border:0.5px solid #bbb;padding:5px 7px}
+    th{background:#185FA5;color:#fff;font-weight:600;text-align:left}
+    .info td:first-child{font-weight:600;background:#dbeafe;color:#1e40af}
+    .total td{background:#185FA5;color:#fff;font-weight:700}
+    .sigs{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+    .sig{border:0.5px solid #bbb;padding:7px;min-height:55px}
+    .sig-lbl{font-weight:700;color:#185FA5;font-size:10px;margin-bottom:30px}
+    @media print{@page{margin:15mm}}
+  </style></head><body>
+  <div class="logo"><span>bit</span> <span style="background:#fff;color:#0C1F3F;border:1px solid #0C1F3F">2</span> me</div>
+  <h2>SOLICITUD DE REEMBOLSO</h2>
+  <table class="info">
+    <tr><td>SOLICITANTE</td><td>${name}</td></tr>
+    <tr><td>BU ASOCIADA AL SOLICITANTE</td><td>${bu}</td></tr>
+    <tr><td>RESPONSABLE DIRECTO DEL SOLICITANTE</td><td>${manager}</td></tr>
+    <tr><td>FECHA DE SOLICITUD</td><td>${today()}</td></tr>
+    <tr><td>MOTIVO DE LA SOLICITUD</td><td>${reason}</td></tr>
+  </table>
+  <table>
+    <thead><tr><th>FECHA</th><th>NOMBRE DEL COMERCIO</th><th>DETALLE DE GASTOS</th><th style="text-align:right">IMPORTE</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr class="total"><td colspan="3" style="text-align:right">TOTAL GASTOS SOLICITUD</td><td style="text-align:right">${fmt(total)}</td></tr></tfoot>
+  </table>
+  <div class="sigs">
+    <div class="sig"><div class="sig-lbl">FIRMA SOLICITANTE</div></div>
+    <div class="sig"><div class="sig-lbl">FIRMA RESPONSABLE</div></div>
+  </div>
+  <div style="margin-top:16px;display:flex;align-items:center;gap:8px">
+    <div style="font-weight:700;color:#185FA5;font-size:10px;background:#dbeafe;padding:4px 8px">FECHA ABONO</div>
+    <div style="border:0.5px solid #bbb;padding:4px 60px">&nbsp;</div>
+  </div>
+  </body></html>`;
+  const w = window.open('','_blank');
+  if(!w) { showToast('Allow popups to open PDF'); return; }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(), 600);
+}
+
+function generateEmail() {
+  const exps = getExportExpenses();
+  if(!exps.length) { showToast('No expenses selected'); return; }
+  const d = state.exportDetails;
+  const name = d.name || '[Your Name]';
+  const reason = d.reason || 'expenses';
+  const total = exps.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const lines = exps.map(e=>`  • ${e.date} | ${e.merchant||'—'} | ${CATS[e.category]?.label||e.category} | ${fmt(e.amount)}`).join('\n');
+  document.getElementById('email-subject').value = `Solicitud de Reembolso — ${name} — ${reason}`;
+  document.getElementById('email-body').value = `Hola,\n\nAdjunto la solicitud de reembolso correspondiente a: ${reason}.\n\nDetalle de gastos:\n${lines}\n\nTotal a reembolsar: ${fmt(total)}\n\nEn adjunto encontrarás:\n  - Hoja de Solicitud de Reembolso (PDF firmada)\n  - Justificantes y recibos de cada gasto\n\nQuedo a disposición para cualquier aclaración.\n\nSaludos,\n${name}`;
+  openSheet('email');
+}
+
+function copyEmail() {
+  const text = 'Subject: ' + document.getElementById('email-subject').value + '\n\n' + document.getElementById('email-body').value;
+  navigator.clipboard.writeText(text).then(()=>{ showToast('✓ Copied to clipboard'); closeSheet('email'); }).catch(()=>{
+    // Fallback for older iOS
+    const ta = document.getElementById('email-body');
+    ta.select();
+    document.execCommand('copy');
+    showToast('✓ Copied'); closeSheet('email');
+  });
+}
+
+// ---- Toast ----
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+// ---- PWA / install ----
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW:', e));
+}
+
+// Show install banner on iOS if not in standalone
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.navigator.standalone === true;
+if(isIOS && !isStandalone) {
+  document.getElementById('install-banner').style.display = 'flex';
+}
+
+// ---- Init ----
+document.getElementById('header-sub').textContent = 'Expense Tracker';
+refreshAll();
+</script>
+</body>
+</html>
